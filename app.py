@@ -1,39 +1,37 @@
 import streamlit as st
 import joblib
 import re
+from textblob import TextBlob
 
-# Load model dan vectorizer
-model = joblib.load("sentiment_model_rf.pkl")
+# Load the TF-IDF Vectorizer
 vectorizer = joblib.load("tfidf_vectorizer.pkl")
 
-# Mapping label prediksi
-label_mapping = {
-    0: "Negative",
-    1: "Neutral",
-    2: "Positive"
-}
+# Load the Sentiment Model (Random Forest)
+model = joblib.load("sentiment_model_rf.pkl")
 
-# Fungsi untuk bersihkan teks
-def clean_text(text):
+
+label_map_inverse = {0: "positive", 1: "neutral", 2: "negative"}
+
+st.title("VCT Reddit Comment Sentiment Analyzer")
+
+user_input = st.text_area("Enter a VCT Reddit comment:", "")
+
+def preprocess_text(text):
     text = text.lower()
-    text = re.sub(r"http\S+", "", text)
-    text = re.sub(r"[^a-z\s]", "", text)
-    return text.strip()
+    text = re.sub(r'[^a-zA-Z\s]', '', text)
+    return text
 
-# UI Streamlit
-st.set_page_config(page_title="VCT Reddit Sentiment Analyzer")
-st.title("🔍 VCT Reddit Comment Sentiment Analyzer")
-st.write("Masukkan komentar seperti di Reddit, dan sistem akan memprediksi sentimennya (positif, netral, atau negatif).")
-
-user_input = st.text_area("📝 Komentar Reddit", "")
-
-if st.button("Prediksi Sentimen"):
+if st.button("Analyze Sentiment"):
     if user_input:
-        cleaned = clean_text(user_input)
-        vec = vectorizer.transform([cleaned])
-        pred = model.predict(vec)[0]
-        sentiment = label_mapping.get(pred, "Unknown")
+        preprocessed_input = preprocess_text(user_input)
 
-        st.success(f"Hasil Prediksi: **{sentiment}** 🎯")
+        # Transform the preprocessed text using the loaded TF-IDF vectorizer
+        input_vector = vectorizer.transform([preprocessed_input])
+
+        # Make prediction
+        prediction_encoded = model.predict(input_vector)[0]
+        predicted_sentiment = label_map_inverse.get(prediction_encoded, "unknown")
+
+        st.write(f"**Predicted Sentiment:** {predicted_sentiment}")
     else:
-        st.warning("Masukkan komentar terlebih dahulu.")
+        st.write("Please enter a comment to analyze.")
